@@ -96,6 +96,21 @@
             white-space: nowrap;
         }
 
+        .draggable-barcode {
+            position: absolute;
+            cursor: move;
+            padding: 0;
+            margin: 0;
+            background-color: gray;
+            /* Platzhalterfarbe */
+            border-radius: 3px;
+            box-sizing: border-box;
+            letter-spacing: -0.8px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+
         .zpl-output {
             margin-top: 20px;
             width: 80%;
@@ -551,6 +566,13 @@
         generateZPL();
     }
 
+    function calculateTotalModulesCode128(data) {
+        const numDataChars = data.length;
+        const totalSymbols = numDataChars + 2; // Startzeichen und Prüfziffer
+        const totalModules = (totalSymbols * 11) + 13; // +13 für das Stop-Zeichen
+        return totalModules;
+    }
+
     function addBarcodeToLabel() {
         initializeCanvas();
         const barcodeData = document.getElementById('barcodeData').value || '1234567890';
@@ -559,24 +581,46 @@
         const hideText = document.getElementById('hideBarcodeText').checked;
         const canvas = document.getElementById('labelCanvas');
 
+        const moduleWidthDots = 2; // Modulbreite in Punkten (entspricht ^BY in ZPL)
+        const dpi = 203; // Dots per inch für ZPL-Drucker
+
+        // Berechnung der Gesamtanzahl der Module im Barcode
+        const totalModules = calculateTotalModulesCode128(barcodeData);
+
+        // Berechnung der Barcode-Breite in Punkten
+        const barcodeWidthDots = totalModules * moduleWidthDots;
+
+        // Umrechnung von Punkten in Pixel für die Anzeige
+        const pixelsPerDot = (25.4 / dpi) * 3.78; // 1 Punkt = 0.125 mm; 1 mm = 3.78 Pixel
+        const barcodeWidthPx = barcodeWidthDots * pixelsPerDot;
+
         const barcodeHeightPx = desiredHeightMm * 3.78;
-        const moduleWidth = 2;
 
         const barcodeElement = document.createElement('div');
         barcodeElement.classList.add('draggable-barcode');
-        barcodeElement.textContent = hideText ? "|||" : "|||\n" + barcodeData;
-        barcodeElement.style.width = (barcodeData.length * moduleWidth * 1.5) + 'px'; // Schätzung der Breite
+        barcodeElement.textContent = hideText ? "" : barcodeData;
+        barcodeElement.style.width = barcodeWidthPx + 'px';
         barcodeElement.style.height = barcodeHeightPx + 'px';
         barcodeElement.style.left = '0px';
         barcodeElement.style.top = '0px';
+
+        // Stil für die Darstellung des Barcodes (optional)
+        barcodeElement.style.backgroundColor = 'gray'; // Platzhalter für den Barcode
+        barcodeElement.style.color = 'black';
+        barcodeElement.style.display = 'flex';
+        barcodeElement.style.alignItems = 'flex-end';
+        barcodeElement.style.justifyContent = 'center';
+        barcodeElement.style.fontSize = '12px';
+        barcodeElement.style.overflow = 'hidden';
+
         canvas.appendChild(barcodeElement);
 
         elements.push({
             type: 'barcode',
             element: barcodeElement,
             data: barcodeData,
-            barcodeType: 'Code128', // Hardcodierter Barcode-Typ
-            moduleWidth: moduleWidth,
+            barcodeType: 'Code128',
+            moduleWidth: moduleWidthDots,
             x: 0,
             y: 0,
             height: desiredHeightMm * 8,
@@ -587,6 +631,7 @@
         enableElementEditing(barcodeElement, elements[elements.length - 1]);
         generateZPL();
     }
+
 
     function addImageToLabel() {
         initializeCanvas();
