@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZPL Label Designer</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            width: 80%;
+            height: 90%;
+            background-color: #ffffff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sidebar label {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .sidebar input,
+        .sidebar button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: none;
+            box-sizing: border-box;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 20px;
+            background-color: #ecf0f1;
+            overflow: auto;
+        }
+
+        .canvas {
+            background-color: white;
+            border: 1px solid #bdc3c7;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .draggable-text,
+        .draggable-qr,
+        .draggable-image {
+            position: absolute;
+            cursor: move;
+            padding: 0;
+            margin: 0;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+            box-sizing: border-box;
+            letter-spacing: -0.8px;
+            white-space: nowrap;
+        }
+
+        .zpl-output {
+            margin-top: 20px;
+            width: 80%;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-all;
+            max-height: 200px;
+            overflow: auto;
+        }
+
+        #printButton,#updateButton,#addQRButton,#addImageButton {
+            width: 200px;
+            padding: 5px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: solid #556575 ;
+            background-color: #556575;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #printButton:hover,#updateButton:hover,#addQRButton:hover,#addImageButton:hover {
+            background-color: #435769;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Customizations</h2>
+            <label for="labelWidth">Width (mm):</label>
+            <input type="number" id="labelWidth" value="60">
+
+            <label for="labelHeight">Height (mm):</label>
+            <input type="number" id="labelHeight" value="60">
+
+            <label for="fontSize">Font size (mm):</label>
+            <input type="number" id="fontSize" value="5">
+
+            <label for="text">Text:</label>
+            <input type="text" id="text" placeholder="Your text here">
+
+            <button id="updateButton">Add Text Block</button>
+
+            <label for="qrData">QR-Code Data:</label>
+            <input type="text" id="qrData" placeholder="Content of the QR-Code">
+
+            <label for="qrSize">QR-Code Size (mm):</label>
+            <input type="number" id="qrSize" value="10">
+
+            <button id="addQRButton">Add QR-Code</button>
+
+            <label for="imageUpload">Upload Image:</label>
+            <input type="file" id="imageUpload" accept="image/jpeg, image/png">
+
+            <label for="imageSize">Image Size (mm):</label>
+            <input type="number" id="imageSize" placeholder="e.g., 30">
+
+            <button id="addImageButton">Add Image</button>
+        </div>
+        <div class="main-content">
+            <div class="canvas" id="labelCanvas">
+                <!-- Text, QR codes, and images will be dynamically inserted here -->
+            </div>
+            <button id="printButton">Print Label</button>
+
+            <div class="zpl-output" id="zplOutput">ZPL code will be displayed here</div>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    let elements = [];
+
+    function initializeCanvas() {
+        const labelWidth = document.getElementById('labelWidth').value || 60;
+        const labelHeight = document.getElementById('labelHeight').value || 60;
+        const canvas = document.getElementById('labelCanvas');
+        const widthPx = parseFloat(labelWidth) * 3.78;
+        const heightPx = parseFloat(labelHeight) * 3.78;
+
+        canvas.style.width = widthPx + 'px';
+        canvas.style.height = heightPx + 'px';
+    }
+
+    function addTextToLabel() {
+        initializeCanvas();
+        const fontSize = document.getElementById('fontSize').value || 5;
+        const textInput = document.getElementById('text').value;
+        const canvas = document.getElementById('labelCanvas');
+
+        const textElement = document.createElement('div');
+        textElement.classList.add('draggable-text');
+        textElement.style.fontSize = (fontSize ? parseInt(fontSize, 10) * 3.78 : 18.9) + 'px';
+        textElement.textContent = textInput || 'Hello World!';
+        textElement.style.left = '0px';
+        textElement.style.top = '0px';
+        canvas.appendChild(textElement);
+
+        elements.push({
+            type: 'text',
+            element: textElement,
+            text: textInput || 'Hello World!',
+            fontHeight: parseFloat(fontSize) * 8,
+            fontWidth: 0,
+            x: 0,
+            y: 0
+        });
+
+        makeElementDraggable(textElement);
+
+        generateZPL();
+    }
+
+    function addQRCodeToLabel() {
+        initializeCanvas();
+        const qrData = document.getElementById('qrData').value || 'http://example.com';
+        const qrSizeInput = document.getElementById('qrSize').value;
+        const desiredSizeMm = qrSizeInput ? parseFloat(qrSizeInput) : 30;
+        const canvas = document.getElementById('labelCanvas');
+        const moduleCount = 21;
+
+        let magnification = Math.round((desiredSizeMm * 8) / moduleCount);
+        if (magnification < 1) magnification = 1;
+        if (magnification > 10) magnification = 10;
+
+        const sizeInDots = magnification * moduleCount;
+        const actualSizeMm = sizeInDots / 8;
+
+        const sizePx = actualSizeMm * 3.78;
+
+        const qrElement = document.createElement('div');
+        qrElement.classList.add('draggable-qr');
+        qrElement.textContent = "QR";
+        qrElement.style.width = sizePx + 'px';
+        qrElement.style.height = sizePx + 'px';
+        qrElement.style.left = '0px';
+        qrElement.style.top = '0px';
+        canvas.appendChild(qrElement);
+
+        elements.push({
+            type: 'qr',
+            element: qrElement,
+            data: qrData,
+            x: 0,
+            y: 0,
+            magnification: magnification,
+            sizeInDots: sizeInDots
+        });
+
+        makeElementDraggable(qrElement);
+        generateZPL();
+    }
+
+    function addImageToLabel() {
+        initializeCanvas();
+        const imageInput = document.getElementById('imageUpload');
+        const imageSizeInput = document.getElementById('imageSize').value;
+        const desiredSizeMm = imageSizeInput ? parseFloat(imageSizeInput) : 30;
+
+        if (imageInput.files && imageInput.files[0]) {
+            const file = imageInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const dpi = 203;
+                    const desiredWidthDots = Math.round(desiredSizeMm * dpi / 25.4);
+                    const desiredHeightDots = Math.round((img.height / img.width) * desiredWidthDots);
+
+                    const canvasElement = document.createElement('canvas');
+                    canvasElement.width = desiredWidthDots;
+                    canvasElement.height = desiredHeightDots;
+                    const ctx = canvasElement.getContext('2d');
+
+                    ctx.drawImage(img, 0, 0, desiredWidthDots, desiredHeightDots);
+
+                    const imageData = ctx.getImageData(0, 0, desiredWidthDots, desiredHeightDots);
+                    const zplImageData = convertImageDataToZPL(imageData);
+
+                    const displayImg = document.createElement('img');
+                    displayImg.src = canvasElement.toDataURL();
+                    displayImg.style.width = (desiredSizeMm * 3.78) + 'px';
+                    displayImg.style.height = ((desiredSizeMm * 3.78) * img.height / img.width) + 'px';
+                    displayImg.style.position = 'absolute';
+                    displayImg.style.left = '0px';
+                    displayImg.style.top = '0px';
+                    displayImg.classList.add('draggable-image');
+
+                    const labelCanvas = document.getElementById('labelCanvas');
+                    labelCanvas.appendChild(displayImg);
+
+                    elements.push({
+                        type: 'image',
+                        element: displayImg,
+                        x: 0,
+                        y: 0,
+                        width: desiredWidthDots,
+                        height: desiredHeightDots,
+                        data: zplImageData
+                    });
+
+                    makeElementDraggable(displayImg);
+
+                    generateZPL();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert('Please select an image file.');
+        }
+    }
+
+    function convertImageDataToZPL(imageData) {
+        const pixels = imageData.data;
+        const width = imageData.width;
+        const height = imageData.height;
+        const rowBytes = Math.ceil(width / 8);
+        let data = '';
+        let byte = 0;
+        let bit = 0;
+
+        for (let y = 0; y < height; y++) {
+            let row = '';
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                const grayscale = pixels[i] * 0.3 + pixels[i + 1] * 0.59 + pixels[i + 2] * 0.11;
+                const pixelValue = grayscale > 128 ? 0 : 1;
+                byte = (byte << 1) | pixelValue;
+                bit++;
+
+                if (bit === 8) {
+                    row += ('0' + byte.toString(16)).slice(-2).toUpperCase();
+                    byte = 0;
+                    bit = 0;
+                }
+            }
+            if (bit > 0 && bit < 8) {
+                byte = byte << (8 - bit);
+                row += ('0' + byte.toString(16)).slice(-2).toUpperCase();
+                byte = 0;
+                bit = 0;
+            }
+            data += row;
+        }
+
+        return data;
+    }
+
+    function makeElementDraggable(element) {
+        let offsetX, offsetY;
+
+        element.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            offsetX = e.clientX - element.getBoundingClientRect().left;
+            offsetY = e.clientY - element.getBoundingClientRect().top;
+
+            document.addEventListener('mousemove', moveElement);
+            document.addEventListener('mouseup', stopDragging);
+        });
+
+        element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (confirm('Do you want to delete this element?')) {
+                element.parentNode.removeChild(element);
+                elements = elements.filter(item => item.element !== element);
+                generateZPL();
+            }
+        });
+
+        function moveElement(e) {
+            const canvas = document.getElementById('labelCanvas');
+            const rect = canvas.getBoundingClientRect();
+            let newX = e.clientX - rect.left - offsetX;
+            let newY = e.clientY - rect.top - offsetY;
+
+            if (newX < 0) newX = 0;
+            if (newY < 0) newY = 0;
+            if (newX + element.offsetWidth > rect.width) newX = rect.width - element.offsetWidth;
+            if (newY + element.offsetHeight > rect.height) newY = rect.height - element.offsetHeight;
+
+            element.style.left = newX + 'px';
+            element.style.top = newY + 'px';
+
+            const item = elements.find(el => el.element === element);
+            if (item) {
+                item.x = Math.round(newX * 8 / 3.78);
+                item.y = Math.round(newY * 8 / 3.78);
+            }
+
+            generateZPL();
+        }
+
+        function stopDragging() {
+            document.removeEventListener('mousemove', moveElement);
+            document.removeEventListener('mouseup', stopDragging);
+        }
+    }
+
+    function generateZPL() {
+        let zpl = "^XA\n";
+        elements.forEach(item => {
+            if (item.type === 'text') {
+                zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;      
+            } else if (item.type === 'qr') {
+                zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDQA,${item.data}^FS\n`;
+            } else if (item.type === 'image') {
+                zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}\n`;
+            }
+        });
+        zpl += "^XZ";
+        document.getElementById('zplOutput').textContent = zpl;
+    }
+
+    function sendToPrinter(zpl) {
+        fetch('backend.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: zpl
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Error sending to printer: ' + response.statusText);
+                }
+            })
+            .then(data => {
+                alert(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error printing: ' + error.message);
+            });
+    }
+
+    document.getElementById('printButton').addEventListener('click', () => {
+        const zplCode = document.getElementById('zplOutput').textContent;
+        if (zplCode.trim() === '' || zplCode.includes('ZPL code will be displayed here')) {
+            alert('Please create a label first.');
+        } else {
+            sendToPrinter(zplCode);
+        }
+    });
+
+    document.getElementById('updateButton').addEventListener('click', addTextToLabel);
+    document.getElementById('addQRButton').addEventListener('click', addQRCodeToLabel);
+    document.getElementById('addImageButton').addEventListener('click', addImageToLabel);
+
+</script>
+
+</html>
