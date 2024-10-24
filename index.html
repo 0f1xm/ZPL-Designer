@@ -136,10 +136,34 @@
 
         }
 
+        #saveDesignButton,
+        #loadDesignButton {
+            width: 200px;
+            padding: 1px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: solid #556575;
+            background-color: #556575;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #saveDesignButton:hover,
+        #loadDesignButton:hover {
+            background-color: #435769;
+        }
+
         @media (max-width: 768px) {
 
             body {
                 height: auto;
+            }
+
+            #saveDesignButton,
+            #loadDesignButton {
+                width: 100%;
+                font-size: 14px;
             }
 
             .container {
@@ -222,6 +246,10 @@
                 <!-- Text, QR-Codes, Barcodes und Bilder werden hier dynamisch eingefügt -->
             </div>
             <button id="printButton">Etikett drucken</button>
+            <button id="saveDesignButton">Design speichern</button>
+            <button id="loadDesignButton">Design laden</button>
+
+            <div id="successMessage" style="color: green; margin-top: 10px;"></div>
 
             <div class="zpl-output" id="zplOutput">ZPL-Code wird hier angezeigt</div>
         </div>
@@ -294,7 +322,7 @@
         const canvas = document.getElementById('labelCanvas');
 
         const barcodeHeightPx = desiredHeightMm * 3.78;
-        const moduleWidth = 1;
+        const moduleWidth = 2;
 
         const barcodeElement = document.createElement('div');
         barcodeElement.classList.add('draggable-barcode');
@@ -352,7 +380,16 @@
                     displayImg.classList.add('draggable-image');
                     const labelCanvas = document.getElementById('labelCanvas');
                     labelCanvas.appendChild(displayImg);
-                    elements.push({ type: 'image', element: displayImg, x: 0, y: 0, width: desiredWidthDots, height: desiredHeightDots, data: zplImageData });
+                    elements.push({
+                        type: 'image',
+                        element: displayImg,
+                        x: 0,
+                        y: 0,
+                        width: desiredWidthDots,
+                        height: desiredHeightDots,
+                        data: zplImageData,
+                        dataBase64: displayImg.src.split(',')[1] // Base64-Daten speichern
+                    });
                     makeElementDraggable(displayImg);
                     enableElementEditing(displayImg, elements[elements.length - 1]);
 
@@ -479,7 +516,9 @@
                 throw new Error('Fehler beim Senden an den Drucker: ' + response.statusText);
             }
         }).then(data => {
-            alert(data);
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = 'Druck erfolgreich!';
+            setTimeout(() => { successMessage.textContent = ''; }, 3000);
         }).catch(error => {
             console.error('Fehler:', error);
             alert('Fehler beim Drucken: ' + error.message);
@@ -545,6 +584,168 @@
         });
     }
 
+    function saveDesign() {
+        const designData = {
+            labelWidth: document.getElementById('labelWidth').value,
+            labelHeight: document.getElementById('labelHeight').value,
+            elements: elements.map(item => {
+                const elementData = {
+                    type: item.type,
+                    x: item.x,
+                    y: item.y,
+                };
+                if (item.type === 'text') {
+                    elementData.text = item.text;
+                    elementData.fontHeight = item.fontHeight;
+                    elementData.fontWidth = item.fontWidth;
+                } else if (item.type === 'qr') {
+                    elementData.data = item.data;
+                    elementData.magnification = item.magnification;
+                    elementData.sizeInDots = item.sizeInDots;
+                } else if (item.type === 'barcode') {
+                    elementData.data = item.data;
+                    elementData.barcodeType = item.barcodeType;
+                    elementData.moduleWidth = item.moduleWidth;
+                    elementData.height = item.height;
+                } else if (item.type === 'image') {
+                    elementData.data = item.data;
+                    elementData.width = item.width;
+                    elementData.height = item.height;
+                    elementData.dataBase64 = item.element.src.split(',')[1]; // Base64-Daten speichern
+                }
+                return elementData;
+            })
+        };
+        const jsonStr = JSON.stringify(designData);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'label_design.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function loadDesign() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = event => {
+                const designData = JSON.parse(event.target.result);
+                // Vorhandene Elemente entfernen
+                elements = [];
+                const canvas = document.getElementById('labelCanvas');
+                while (canvas.firstChild) {
+                    canvas.removeChild(canvas.firstChild);
+                }
+                // Etikettengröße setzen
+                document.getElementById('labelWidth').value = designData.labelWidth;
+                document.getElementById('labelHeight').value = designData.labelHeight;
+                initializeCanvas();
+                // Elemente wiederherstellen
+                designData.elements.forEach(item => {
+                    if (item.type === 'text') {
+                        const textElement = document.createElement('div');
+                        textElement.classList.add('draggable-text');
+                        textElement.style.fontSize = (item.fontHeight / 8 * 3.78) + 'px';
+                        textElement.textContent = item.text;
+                        textElement.style.left = (item.x * 3.78 / 8) + 'px';
+                        textElement.style.top = (item.y * 3.78 / 8) + 'px';
+                        canvas.appendChild(textElement);
+                        const newItem = {
+                            type: 'text',
+                            element: textElement,
+                            text: item.text,
+                            fontHeight: item.fontHeight,
+                            fontWidth: item.fontWidth,
+                            x: item.x,
+                            y: item.y
+                        };
+                        elements.push(newItem);
+                        makeElementDraggable(textElement);
+                        enableElementEditing(textElement, newItem);
+                    } else if (item.type === 'qr') {
+                        const sizePx = (item.sizeInDots / 8) * 3.78;
+                        const qrElement = document.createElement('div');
+                        qrElement.classList.add('draggable-qr');
+                        qrElement.textContent = "QR";
+                        qrElement.style.width = sizePx + 'px';
+                        qrElement.style.height = sizePx + 'px';
+                        qrElement.style.left = (item.x * 3.78 / 8) + 'px';
+                        qrElement.style.top = (item.y * 3.78 / 8) + 'px';
+                        canvas.appendChild(qrElement);
+                        const newItem = {
+                            type: 'qr',
+                            element: qrElement,
+                            data: item.data,
+                            x: item.x,
+                            y: item.y,
+                            magnification: item.magnification,
+                            sizeInDots: item.sizeInDots
+                        };
+                        elements.push(newItem);
+                        makeElementDraggable(qrElement);
+                        enableElementEditing(qrElement, newItem);
+                    } else if (item.type === 'barcode') {
+                        const barcodeElement = document.createElement('div');
+                        barcodeElement.classList.add('draggable-barcode');
+                        barcodeElement.textContent = "|||\n" + item.data;
+                        barcodeElement.style.left = (item.x * 3.78 / 8) + 'px';
+                        barcodeElement.style.top = (item.y * 3.78 / 8) + 'px';
+                        barcodeElement.style.height = (item.height / 8 * 3.78) + 'px';
+                        canvas.appendChild(barcodeElement);
+                        const newItem = {
+                            type: 'barcode',
+                            element: barcodeElement,
+                            data: item.data,
+                            barcodeType: item.barcodeType,
+                            moduleWidth: item.moduleWidth,
+                            x: item.x,
+                            y: item.y,
+                            height: item.height
+                        };
+                        elements.push(newItem);
+                        makeElementDraggable(barcodeElement);
+                        enableElementEditing(barcodeElement, newItem);
+                    } else if (item.type === 'image') {
+                        const displayImg = document.createElement('img');
+                        const widthPx = (item.width / 8) * 3.78;
+                        const heightPx = (item.height / 8) * 3.78;
+                        displayImg.src = 'data:image/gif;base64,' + item.dataBase64;
+                        displayImg.style.width = widthPx + 'px';
+                        displayImg.style.height = heightPx + 'px';
+                        displayImg.style.position = 'absolute';
+                        displayImg.style.left = (item.x * 3.78 / 8) + 'px';
+                        displayImg.style.top = (item.y * 3.78 / 8) + 'px';
+                        displayImg.classList.add('draggable-image');
+                        canvas.appendChild(displayImg);
+                        const newItem = {
+                            type: 'image',
+                            element: displayImg,
+                            x: item.x,
+                            y: item.y,
+                            width: item.width,
+                            height: item.height,
+                            data: item.data,
+                            dataBase64: item.dataBase64
+                        };
+                        elements.push(newItem);
+                        makeElementDraggable(displayImg);
+                        enableElementEditing(displayImg, newItem);
+                    }
+                });
+                generateZPL();
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
 
     document.getElementById('printButton').addEventListener('click', () => {
         const zplCode = document.getElementById('zplOutput').textContent;
@@ -559,6 +760,9 @@
     document.getElementById('addQRButton').addEventListener('click', addQRCodeToLabel);
     document.getElementById('addBarcodeButton').addEventListener('click', addBarcodeToLabel);
     document.getElementById('addImageButton').addEventListener('click', addImageToLabel);
+    document.getElementById('saveDesignButton').addEventListener('click', saveDesign);
+    document.getElementById('loadDesignButton').addEventListener('click', loadDesign);
+
 
 </script>
 
