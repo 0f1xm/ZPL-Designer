@@ -255,6 +255,7 @@
         canvas.appendChild(textElement);
         elements.push({ type: 'text', element: textElement, text: textInput || 'Hello World!', fontHeight: parseFloat(fontSize) * 8, fontWidth: 0, x: 0, y: 0 });
         makeElementDraggable(textElement);
+        enableElementEditing(textElement, elements[elements.length - 1]);
         generateZPL();
     }
 
@@ -281,6 +282,7 @@
         canvas.appendChild(qrElement);
         elements.push({ type: 'qr', element: qrElement, data: qrData, x: 0, y: 0, magnification: magnification, sizeInDots: sizeInDots });
         makeElementDraggable(qrElement);
+        enableElementEditing(qrElement, elements[elements.length - 1]);
         generateZPL();
     }
 
@@ -315,6 +317,7 @@
         });
 
         makeElementDraggable(barcodeElement);
+        enableElementEditing(barcodeElement, elements[elements.length - 1]);
         generateZPL();
     }
 
@@ -351,6 +354,8 @@
                     labelCanvas.appendChild(displayImg);
                     elements.push({ type: 'image', element: displayImg, x: 0, y: 0, width: desiredWidthDots, height: desiredHeightDots, data: zplImageData });
                     makeElementDraggable(displayImg);
+                    enableElementEditing(displayImg, elements[elements.length - 1]);
+
                     generateZPL();
                 };
                 img.src = e.target.result;
@@ -480,6 +485,66 @@
             alert('Fehler beim Drucken: ' + error.message);
         });
     }
+
+    function enableElementEditing(element, item) {
+        element.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            if (item.type === 'text') {
+                const newText = prompt('Bitte geben Sie den neuen Text ein:', item.text);
+                if (newText !== null) {
+                    item.text = newText;
+                    element.textContent = newText;
+                    generateZPL();
+                }
+            } else if (item.type === 'qr') {
+                const newData = prompt('Bitte geben Sie die neuen QR-Code Daten ein:', item.data);
+                if (newData !== null) {
+                    item.data = newData;
+                    element.textContent = "QR"; // Anzeige bleibt vereinfacht
+                    generateZPL();
+                }
+            } else if (item.type === 'barcode') {
+                const newData = prompt('Bitte geben Sie die neuen Barcode Daten ein:', item.data);
+                if (newData !== null) {
+                    item.data = newData;
+                    element.textContent = "|||\n" + newData;
+                    generateZPL();
+                }
+            } else if (item.type === 'image') {
+                const imageInput = document.createElement('input');
+                imageInput.type = 'file';
+                imageInput.accept = 'image/gif';
+                imageInput.onchange = function () {
+                    if (imageInput.files && imageInput.files[0]) {
+                        const file = imageInput.files[0];
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const img = new Image();
+                            img.onload = function () {
+                                const dpi = 203;
+                                const desiredWidthDots = item.width;
+                                const desiredHeightDots = item.height;
+                                const canvasElement = document.createElement('canvas');
+                                canvasElement.width = desiredWidthDots;
+                                canvasElement.height = desiredHeightDots;
+                                const ctx = canvasElement.getContext('2d');
+                                ctx.drawImage(img, 0, 0, desiredWidthDots, desiredHeightDots);
+                                const imageData = ctx.getImageData(0, 0, desiredWidthDots, desiredHeightDots);
+                                const zplImageData = convertImageDataToZPL(imageData);
+                                item.data = zplImageData;
+                                element.src = canvasElement.toDataURL();
+                                generateZPL();
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                imageInput.click();
+            }
+        });
+    }
+
 
     document.getElementById('printButton').addEventListener('click', () => {
         const zplCode = document.getElementById('zplOutput').textContent;
