@@ -1156,24 +1156,36 @@
         };
     }
 
-    function generateZPL() {
-        let zpl = "^XA\n";
-        elements.forEach(item => {
-            if (item.type === 'text') {
-                zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
-            } else if (item.type === 'qr') {
-                zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDLA,${item.data}^FS\n`;
-            } else if (item.type === 'barcode') {
-                zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
-                const printInterpretationLine = item.hideText ? 'N' : 'Y';
-                zpl += `^BCN,${item.height},${printInterpretationLine},N,N\n^FD${item.data}^FS\n`;
-            } else if (item.type === 'image') {
-                zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}\n`;
-            }
-        });
-        zpl += "^XZ";
-        document.getElementById('zplOutput').textContent = zpl;
+    function convertUmlautsToZPL(text) {
+    return text
+        .replace(/ä/g, "\x84")
+        .replace(/ö/g, "\x94")
+        .replace(/ü/g, "\x81")
+        .replace(/Ä/g, "\x8E")
+        .replace(/Ö/g, "\x99")
+        .replace(/Ü/g, "\x9A")
+        .replace(/ß/g, "\xE1");
     }
+
+    function generateZPL() {
+    let zpl = "^XA\n^CI28\n";
+    elements.forEach(item => {
+        if (item.type === 'text') {
+            const textWithUmlauts = convertUmlautsToZPL(item.text);
+            zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${textWithUmlauts}^FS\n`;
+        } else if (item.type === 'qr') {
+            zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDLA,${item.data}^FS\n`;
+        } else if (item.type === 'barcode') {
+            zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
+            const printInterpretationLine = item.hideText ? 'N' : 'Y';
+            zpl += `^BCN,${item.height},${printInterpretationLine},N,N\n^FD${item.data}^FS\n`;
+        } else if (item.type === 'image') {
+            zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}\n`;
+        }
+    });
+    zpl += "^XZ";
+    document.getElementById('zplOutput').textContent = zpl;
+}
 
     function sendToPrinter(zpl) {
         fetch('backend.php', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: zpl }).then(response => {
