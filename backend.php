@@ -33,7 +33,7 @@ if (!$socket) {
     echo 'Could not connect to printer: ' . $errstr . ' (' . $errno . ')';
     exit;
 }
-
+$zpl_data = mb_convert_encoding($zpl_data, "ISO-8859-1");
 fwrite($socket, $zpl_data);
 fclose($socket);
 
