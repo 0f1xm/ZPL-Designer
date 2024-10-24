@@ -1,3 +1,4 @@
+<!--GANZ WICHTIG: Code Page auf 1252 und Country Code auf 001 setzen-->
 <!DOCTYPE html>
 <html lang="de">
 
@@ -1157,7 +1158,7 @@
     }
 
     function generateZPL() {
-    let zpl = "^XA\n^CI28\n"; // Verwenden von UTF-8-Zeichensatz
+    let zpl = "^XA\n^CI27\n"; // Verwenden von UTF-8-Zeichensatz
     elements.forEach(item => {
         if (item.type === 'text') {
             zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
