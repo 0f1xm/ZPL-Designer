@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
     <meta charset="UTF-8">
@@ -24,6 +24,7 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             overflow: hidden;
+
         }
 
         .sidebar {
@@ -39,6 +40,7 @@
 
         .sidebar h2 {
             font-size: 20px;
+            margin-top: 0px;
             margin-bottom: 2px;
             text-align: center;
         }
@@ -52,8 +54,8 @@
         .sidebar button {
             width: 100%;
             padding: 5px;
-            margin-top: 5px;
-            margin-bottom: 10px;
+            margin-top: 2px;
+            margin-bottom: 7px;
             border-radius: 5px;
             border: none;
             box-sizing: border-box;
@@ -131,6 +133,46 @@
         #addBarcodeButton:hover,
         #addImageButton:hover {
             background-color: #435769;
+
+        }
+
+        @media (max-width: 768px) {
+
+            body {
+                height: auto;
+            }
+
+            .container {
+                flex-direction: column;
+                width: 95%;
+                height: auto;
+                box-shadow: none;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 15px;
+                box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .main-content {
+                width: 100%;
+                padding: 15px;
+            }
+
+            #printButton,
+            #updateButton,
+            #addQRButton,
+            #addBarcodeButton,
+            #addImageButton {
+                width: 100%;
+                font-size: 14px;
+            }
+
+            .zpl-output {
+                width: 100%;
+                max-height: 150px;
+            }
         }
     </style>
 </head>
@@ -138,42 +180,55 @@
 <body>
     <div class="container">
         <div class="sidebar">
-            <h2>Customizations</h2>
-            <label for="labelWidth">Width (mm):</label>
-            <input type="number" id="labelWidth" value="60">
-            <label for="labelHeight">Height (mm):</label>
+            <h2>Anpassungen</h2> <label for="labelWidth">Breite (mm):</label> <input type="number" id="labelWidth"
+                value="60">
+            <label for="labelHeight">Höhe (mm):</label>
             <input type="number" id="labelHeight" value="60">
-            <label for="fontSize">Font size (mm):</label>
+
+            <label for="fontSize">Schriftgröße (mm):</label>
             <input type="number" id="fontSize" value="5">
+
             <label for="text">Text:</label>
-            <input type="text" id="text" placeholder="Your text here">
-            <button id="updateButton">Add Element</button>
-            <label for="qrData">QR Code Data:</label>
-            <input type="text" id="qrData" placeholder="QR Code content">
-            <label for="qrSize">QR Code Size (mm):</label>
+            <input type="text" id="text" placeholder="Dein Text hier">
+
+            <button id="updateButton">Baustein hinzufügen</button>
+
+            <label for="qrData">QR-Code Daten:</label>
+            <input type="text" id="qrData" placeholder="Inhalt des QR-Codes">
+
+            <label for="qrSize">QR-Code Größe (mm):</label>
             <input type="number" id="qrSize" value="10">
-            <button id="addQRButton">Add QR Code</button>
-            <label for="barcodeData">Barcode Data:</label>
-            <input type="text" id="barcodeData" placeholder="Barcode content">
-            <label for="barcodeHeight">Barcode Height (mm):</label>
+
+            <button id="addQRButton">QR-Code hinzufügen</button>
+
+            <label for="barcodeData">Barcode Daten:</label>
+            <input type="text" id="barcodeData" placeholder="Inhalt des Barcodes">
+
+            <label for="barcodeHeight">Barcode Höhe (mm):</label>
             <input type="number" id="barcodeHeight" value="10">
-            <button id="addBarcodeButton">Add Barcode</button>
-            <label for="imageUpload">Upload Image:</label>
+
+            <button id="addBarcodeButton">Barcode hinzufügen</button>
+
+            <label for="imageUpload">Bild hochladen:</label>
             <input type="file" id="imageUpload" accept="image/gif">
-            <label for="imageSize">Image Size (mm):</label>
-            <input type="number" id="imageSize" placeholder="e.g., 30">
-            <button id="addImageButton">Add Image</button>
+
+            <label for="imageSize">Bildgröße (mm):</label>
+            <input type="number" id="imageSize" placeholder="z.B. 30">
+
+            <button id="addImageButton">Bild hinzufügen</button>
         </div>
         <div class="main-content">
             <div class="canvas" id="labelCanvas">
+                <!-- Text, QR-Codes, Barcodes und Bilder werden hier dynamisch eingefügt -->
             </div>
-            <button id="printButton">Print Label</button>
-            <div class="zpl-output" id="zplOutput">ZPL Code will be displayed here</div>
+            <button id="printButton">Etikett drucken</button>
+
+            <div class="zpl-output" id="zplOutput">ZPL-Code wird hier angezeigt</div>
         </div>
     </div>
 </body>
 <script type="text/javascript">
-    
+
     let elements = [];
 
     function initializeCanvas() {
@@ -242,7 +297,7 @@
         const barcodeElement = document.createElement('div');
         barcodeElement.classList.add('draggable-barcode');
         barcodeElement.textContent = "|||\n" + barcodeData;
-        barcodeElement.style.width = (barcodeData.length * moduleWidth * 1.5) + 'px';
+        barcodeElement.style.width = (barcodeData.length * moduleWidth * 1.5) + 'px'; // Schätzung der Breite
         barcodeElement.style.height = barcodeHeightPx + 'px';
         barcodeElement.style.left = '0px';
         barcodeElement.style.top = '0px';
@@ -252,7 +307,7 @@
             type: 'barcode',
             element: barcodeElement,
             data: barcodeData,
-            barcodeType: 'Code128',
+            barcodeType: 'Code128', // Hardcodierter Barcode-Typ
             moduleWidth: moduleWidth,
             x: 0,
             y: 0,
@@ -302,7 +357,7 @@
             };
             reader.readAsDataURL(file);
         } else {
-            alert('Please select an image file.');
+            alert('Bitte wählen Sie eine Bilddatei aus.');
         }
     }
 
@@ -314,9 +369,13 @@
         let data = '';
         let byte = 0;
         let bit = 0;
-        for (let y = 0; y < height; y++) {
+        for (let y = 0;
+            y < height;
+            y++) {
             let row = '';
-            for (let x = 0; x < width; x++) {
+            for (let x = 0;
+                x < width;
+                x++) {
                 const i = (y * width + x) * 4;
                 const grayscale = pixels[i] * 0.3 + pixels[i + 1] * 0.59 + pixels[i + 2] * 0.11;
                 const pixelValue = grayscale > 128 ? 0 : 1;
@@ -327,42 +386,35 @@
                     byte = 0;
                     bit = 0;
                 }
-            }
-            if (bit > 0 && bit < 8) {
+            } if (bit > 0 && bit < 8) {
                 byte = byte << (8 - bit);
                 row += ('0' + byte.toString(16)).slice(-2).toUpperCase();
                 byte = 0;
                 bit = 0;
-            }
-            data += row;
-        }
-        return data;
+            } data += row;
+        } return data;
     }
 
     function makeElementDraggable(element) {
         let offsetX, offsetY;
-        element.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            offsetX = e.clientX - element.getBoundingClientRect().left;
-            offsetY = e.clientY - element.getBoundingClientRect().top;
-            document.addEventListener('mousemove', moveElement);
-            document.addEventListener('mouseup', stopDragging);
-        });
 
-        element.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (confirm('Do you want to delete this element?')) {
-                element.parentNode.removeChild(element);
-                elements = elements.filter(item => item.element !== element);
-                generateZPL();
-            }
-        });
+        function startDrag(e) {
+            if (e.type === "mousedown" && e.button !== 0) return;
+            const event = e.type === "touchstart" ? e.touches[0] : e;
+            offsetX = event.clientX - element.getBoundingClientRect().left;
+            offsetY = event.clientY - element.getBoundingClientRect().top;
+            document.addEventListener(e.type === "touchstart" ? "touchmove" : "mousemove", moveElement, { passive: false });
+            document.addEventListener(e.type === "touchstart" ? "touchend" : "mouseup", stopDragging);
+            if (e.type === "touchstart") e.preventDefault();
+        }
 
         function moveElement(e) {
+            const event = e.type === "touchmove" ? e.touches[0] : e;
+            if (e.type === "touchmove") e.preventDefault();
             const canvas = document.getElementById('labelCanvas');
             const rect = canvas.getBoundingClientRect();
-            let newX = e.clientX - rect.left - offsetX;
-            let newY = e.clientY - rect.top - offsetY;
+            let newX = event.clientX - rect.left - offsetX;
+            let newY = event.clientY - rect.top - offsetY;
             if (newX < 0) newX = 0;
             if (newY < 0) newY = 0;
             if (newX + element.offsetWidth > rect.width) newX = rect.width - element.offsetWidth;
@@ -377,11 +429,24 @@
             generateZPL();
         }
 
-        function stopDragging() {
-            document.removeEventListener('mousemove', moveElement);
-            document.removeEventListener('mouseup', stopDragging);
+        function stopDragging(e) {
+            document.removeEventListener(e.type === "touchend" ? "touchmove" : "mousemove", moveElement);
+            document.removeEventListener(e.type === "touchend" ? "touchend" : "mouseup", stopDragging);
         }
+
+        element.addEventListener('mousedown', startDrag);
+        element.addEventListener('touchstart', startDrag, { passive: false });
+
+        element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (confirm('Möchten Sie dieses Element löschen?')) {
+                element.parentNode.removeChild(element);
+                elements = elements.filter(item => item.element !== element);
+                generateZPL();
+            }
+        });
     }
+
 
     function generateZPL() {
         let zpl = "^XA\n";
@@ -406,20 +471,20 @@
             if (response.ok) {
                 return response.text();
             } else {
-                throw new Error('Error sending to the printer: ' + response.statusText);
+                throw new Error('Fehler beim Senden an den Drucker: ' + response.statusText);
             }
         }).then(data => {
             alert(data);
         }).catch(error => {
-            console.error('Error:', error);
-            alert('Error printing: ' + error.message);
+            console.error('Fehler:', error);
+            alert('Fehler beim Drucken: ' + error.message);
         });
     }
 
     document.getElementById('printButton').addEventListener('click', () => {
         const zplCode = document.getElementById('zplOutput').textContent;
-        if (zplCode.trim() === '' || zplCode.includes('ZPL Code will be displayed here')) {
-            alert('Please create a label first.');
+        if (zplCode.trim() === '' || zplCode.includes('ZPL-Code wird hier angezeigt')) {
+            alert('Bitte erstellen Sie zuerst ein Etikett.');
         } else {
             sendToPrinter(zplCode);
         }
