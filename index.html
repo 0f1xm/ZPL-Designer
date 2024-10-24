@@ -198,14 +198,84 @@
                 max-height: 150px;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            /* Versteckt das Modal standardmäßig */
+            position: fixed;
+            /* Bleibt an derselben Stelle */
+            z-index: 1000;
+            /* Höchste Priorität */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            /* Scrollt, wenn nötig */
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Halbtransparentes Schwarz */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            /* Zentriert das Modal */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            /* Maximale Breite des Modals */
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal input[type="text"],
+        .modal input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+
+        .modal button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            background-color: #556575;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .modal button:hover {
+            background-color: #435769;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <div class="sidebar">
-            <h2>Anpassungen</h2> <label for="labelWidth">Breite (mm):</label> <input type="number" id="labelWidth"
-                value="60">
+            <h2>Anpassungen</h2>
+            <label for="labelWidth">Breite (mm):</label>
+            <input type="number" id="labelWidth" value="60">
             <label for="labelHeight">Höhe (mm):</label>
             <input type="number" id="labelHeight" value="60">
 
@@ -252,6 +322,16 @@
             <div id="successMessage" style="color: green; margin-top: 10px;"></div>
 
             <div class="zpl-output" id="zplOutput">ZPL-Code wird hier angezeigt</div>
+        </div>
+    </div>
+
+    <!-- Modal für Elementbearbeitung -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent">
+                <!-- Dynamischer Inhalt wird hier eingefügt -->
+            </div>
         </div>
     </div>
 </body>
@@ -411,13 +491,9 @@
         let data = '';
         let byte = 0;
         let bit = 0;
-        for (let y = 0;
-            y < height;
-            y++) {
+        for (let y = 0; y < height; y++) {
             let row = '';
-            for (let x = 0;
-                x < width;
-                x++) {
+            for (let x = 0; x < width; x++) {
                 const i = (y * width + x) * 4;
                 const grayscale = pixels[i] * 0.3 + pixels[i + 1] * 0.59 + pixels[i + 2] * 0.11;
                 const pixelValue = grayscale > 128 ? 0 : 1;
@@ -428,13 +504,16 @@
                     byte = 0;
                     bit = 0;
                 }
-            } if (bit > 0 && bit < 8) {
+            }
+            if (bit > 0 && bit < 8) {
                 byte = byte << (8 - bit);
                 row += ('0' + byte.toString(16)).slice(-2).toUpperCase();
                 byte = 0;
                 bit = 0;
-            } data += row;
-        } return data;
+            }
+            data += row;
+        }
+        return data;
     }
 
     function makeElementDraggable(element) {
@@ -478,17 +557,7 @@
 
         element.addEventListener('mousedown', startDrag);
         element.addEventListener('touchstart', startDrag, { passive: false });
-
-        element.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (confirm('Möchten Sie dieses Element löschen?')) {
-                element.parentNode.removeChild(element);
-                elements = elements.filter(item => item.element !== element);
-                generateZPL();
-            }
-        });
     }
-
 
     function generateZPL() {
         let zpl = "^XA\n";
@@ -528,60 +597,178 @@
     function enableElementEditing(element, item) {
         element.addEventListener('dblclick', (e) => {
             e.stopPropagation();
-            if (item.type === 'text') {
-                const newText = prompt('Bitte geben Sie den neuen Text ein:', item.text);
-                if (newText !== null) {
-                    item.text = newText;
-                    element.textContent = newText;
-                    generateZPL();
-                }
-            } else if (item.type === 'qr') {
-                const newData = prompt('Bitte geben Sie die neuen QR-Code Daten ein:', item.data);
-                if (newData !== null) {
-                    item.data = newData;
-                    element.textContent = "QR"; // Anzeige bleibt vereinfacht
-                    generateZPL();
-                }
-            } else if (item.type === 'barcode') {
-                const newData = prompt('Bitte geben Sie die neuen Barcode Daten ein:', item.data);
-                if (newData !== null) {
-                    item.data = newData;
-                    element.textContent = "|||\n" + newData;
-                    generateZPL();
-                }
-            } else if (item.type === 'image') {
-                const imageInput = document.createElement('input');
-                imageInput.type = 'file';
-                imageInput.accept = 'image/gif';
-                imageInput.onchange = function () {
-                    if (imageInput.files && imageInput.files[0]) {
-                        const file = imageInput.files[0];
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            const img = new Image();
-                            img.onload = function () {
-                                const dpi = 203;
-                                const desiredWidthDots = item.width;
-                                const desiredHeightDots = item.height;
-                                const canvasElement = document.createElement('canvas');
-                                canvasElement.width = desiredWidthDots;
-                                canvasElement.height = desiredHeightDots;
-                                const ctx = canvasElement.getContext('2d');
-                                ctx.drawImage(img, 0, 0, desiredWidthDots, desiredHeightDots);
-                                const imageData = ctx.getImageData(0, 0, desiredWidthDots, desiredHeightDots);
-                                const zplImageData = convertImageDataToZPL(imageData);
-                                item.data = zplImageData;
-                                element.src = canvasElement.toDataURL();
-                                generateZPL();
-                            };
-                            img.src = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                };
-                imageInput.click();
-            }
+            showEditModal(item);
         });
+    }
+
+    function showEditModal(item) {
+        const modal = document.getElementById('editModal');
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = ''; // Lösche vorherigen Inhalt
+
+        // Schließen-Button
+        const span = document.getElementsByClassName('close')[0];
+        span.onclick = function () {
+            modal.style.display = 'none';
+        };
+
+        // Inhalt basierend auf dem Elementtyp erstellen
+        if (item.type === 'text') {
+            const label = document.createElement('label');
+            label.textContent = 'Text bearbeiten:';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = item.text;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Element löschen';
+            deleteButton.onclick = function () {
+                    item.element.parentNode.removeChild(item.element);
+                    elements = elements.filter(el => el !== item);
+                    modal.style.display = 'none';
+                    generateZPL();
+            };
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Änderungen speichern';
+            saveButton.onclick = function () {
+                item.text = input.value;
+                item.element.textContent = input.value;
+                modal.style.display = 'none';
+                generateZPL();
+            };
+
+            modalContent.appendChild(label);
+            modalContent.appendChild(input);
+            modalContent.appendChild(saveButton);
+            modalContent.appendChild(deleteButton);
+        } else if (item.type === 'qr') {
+            const label = document.createElement('label');
+            label.textContent = 'QR-Code Daten bearbeiten:';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = item.data;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Element löschen';
+            deleteButton.onclick = function () {
+                if (confirm('Möchten Sie dieses Element wirklich löschen?')) {
+                    item.element.parentNode.removeChild(item.element);
+                    elements = elements.filter(el => el !== item);
+                    modal.style.display = 'none';
+                    generateZPL();
+                }
+            };
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Änderungen speichern';
+            saveButton.onclick = function () {
+                item.data = input.value;
+                modal.style.display = 'none';
+                generateZPL();
+            };
+
+            modalContent.appendChild(label);
+            modalContent.appendChild(input);
+            modalContent.appendChild(saveButton);
+            modalContent.appendChild(deleteButton);
+        } else if (item.type === 'barcode') {
+            const label = document.createElement('label');
+            label.textContent = 'Barcode Daten bearbeiten:';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = item.data;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Element löschen';
+            deleteButton.onclick = function () {
+                if (confirm('Möchten Sie dieses Element wirklich löschen?')) {
+                    item.element.parentNode.removeChild(item.element);
+                    elements = elements.filter(el => el !== item);
+                    modal.style.display = 'none';
+                    generateZPL();
+                }
+            };
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Änderungen speichern';
+            saveButton.onclick = function () {
+                item.data = input.value;
+                item.element.textContent = '|||\n' + input.value;
+                modal.style.display = 'none';
+                generateZPL();
+            };
+
+            modalContent.appendChild(label);
+            modalContent.appendChild(input);
+            modalContent.appendChild(saveButton);
+            modalContent.appendChild(deleteButton);
+        } else if (item.type === 'image') {
+            const label = document.createElement('label');
+            label.textContent = 'Bild ersetzen:';
+
+            const imageInput = document.createElement('input');
+            imageInput.type = 'file';
+            imageInput.accept = 'image/gif';
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Element löschen';
+            deleteButton.onclick = function () {
+                if (confirm('Möchten Sie dieses Element wirklich löschen?')) {
+                    item.element.parentNode.removeChild(item.element);
+                    elements = elements.filter(el => el !== item);
+                    modal.style.display = 'none';
+                    generateZPL();
+                }
+            };
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Änderungen speichern';
+            saveButton.onclick = function () {
+                if (imageInput.files && imageInput.files[0]) {
+                    const file = imageInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = new Image();
+                        img.onload = function () {
+                            const dpi = 203;
+                            const desiredWidthDots = item.width;
+                            const desiredHeightDots = item.height;
+                            const canvasElement = document.createElement('canvas');
+                            canvasElement.width = desiredWidthDots;
+                            canvasElement.height = desiredHeightDots;
+                            const ctx = canvasElement.getContext('2d');
+                            ctx.drawImage(img, 0, 0, desiredWidthDots, desiredHeightDots);
+                            const imageData = ctx.getImageData(0, 0, desiredWidthDots, desiredHeightDots);
+                            const zplImageData = convertImageDataToZPL(imageData);
+                            item.data = zplImageData;
+                            item.element.src = canvasElement.toDataURL();
+                            modal.style.display = 'none';
+                            generateZPL();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Bitte wählen Sie eine Bilddatei aus.');
+                }
+            };
+
+            modalContent.appendChild(label);
+            modalContent.appendChild(imageInput);
+            modalContent.appendChild(saveButton);
+            modalContent.appendChild(deleteButton);
+        }
+
+        // Modal anzeigen
+        modal.style.display = 'block';
+
+        // Klick außerhalb des Modals schließt es
+        window.onclick = function (event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
     }
 
     function saveDesign() {
@@ -746,7 +933,6 @@
         input.click();
     }
 
-
     document.getElementById('printButton').addEventListener('click', () => {
         const zplCode = document.getElementById('zplOutput').textContent;
         if (zplCode.trim() === '' || zplCode.includes('ZPL-Code wird hier angezeigt')) {
@@ -762,7 +948,6 @@
     document.getElementById('addImageButton').addEventListener('click', addImageToLabel);
     document.getElementById('saveDesignButton').addEventListener('click', saveDesign);
     document.getElementById('loadDesignButton').addEventListener('click', loadDesign);
-
 
 </script>
 
