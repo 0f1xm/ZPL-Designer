@@ -436,6 +436,9 @@
     <script type="text/javascript">
 
         let elements = [];
+        let horizontalGuide = null;
+        let verticalGuide = null;
+
 
         function initializeCanvas() {
             const labelWidth = document.getElementById('labelWidth').value || 60;
@@ -616,62 +619,149 @@
 
         function makeElementDraggable(element) {
             let offsetX, offsetY;
-            let lastTapTime = 0;
+            let isDragging = false;
 
             function startDrag(e) {
                 if (e.type === "mousedown" && e.button !== 0) return;
-                const event = e.type === "touchstart" ? e.touches[0] : e;
+                const event = e.type.includes("touch") ? e.touches[0] : e;
 
                 offsetX = event.clientX - element.getBoundingClientRect().left;
                 offsetY = event.clientY - element.getBoundingClientRect().top;
+                isDragging = true;
 
-                document.addEventListener(e.type === "touchstart" ? "touchmove" : "mousemove", moveElement, { passive: false });
-                document.addEventListener(e.type === "touchstart" ? "touchend" : "mouseup", stopDragging);
+                document.addEventListener("mousemove", moveElement);
+                document.addEventListener("mouseup", stopDragging);
+                document.addEventListener("touchmove", moveElement, { passive: false });
+                document.addEventListener("touchend", stopDragging);
 
                 if (e.type === "touchstart") e.preventDefault();
             }
 
             function moveElement(e) {
-                const event = e.type === "touchmove" ? e.touches[0] : e;
+                if (!isDragging) return;
+                const event = e.type.includes("touch") ? e.touches[0] : e;
                 if (e.type === "touchmove") e.preventDefault();
+
                 const canvas = document.getElementById('labelCanvas');
                 const rect = canvas.getBoundingClientRect();
                 let newX = event.clientX - rect.left - offsetX;
                 let newY = event.clientY - rect.top - offsetY;
+
+                // Begrenzung innerhalb des Canvas
                 if (newX < 0) newX = 0;
                 if (newY < 0) newY = 0;
                 if (newX + element.offsetWidth > rect.width) newX = rect.width - element.offsetWidth;
                 if (newY + element.offsetHeight > rect.height) newY = rect.height - element.offsetHeight;
+
+                // Snapping
+                const snapThreshold = 5; // Pixel
+
+                // Positionen anderer Elemente sammeln
+                const elementRects = elements.filter(el => el.element !== element).map(el => {
+                    const elRect = el.element.getBoundingClientRect();
+                    return {
+                        left: elRect.left - rect.left,
+                        right: elRect.right - rect.left,
+                        top: elRect.top - rect.top,
+                        bottom: elRect.bottom - rect.top,
+                        centerX: (elRect.left + elRect.right) / 2 - rect.left,
+                        centerY: (elRect.top + elRect.bottom) / 2 - rect.top
+                    };
+                });
+
+                // Positionen des Canvas (für zentriertes Snapping)
+                const canvasCenterX = rect.width / 2;
+                const canvasCenterY = rect.height / 2;
+
+                // Aktuelle Positionen des Elements
+                const elementLeft = newX;
+                const elementRight = newX + element.offsetWidth;
+                const elementTop = newY;
+                const elementBottom = newY + element.offsetHeight;
+                const elementCenterX = newX + element.offsetWidth / 2;
+                const elementCenterY = newY + element.offsetHeight / 2;
+
+                let snapX = null;
+                let snapY = null;
+
+                // Prüfe Snapping zu anderen Elementen
+                elementRects.forEach(rect => {
+                    // Horizontales Snapping
+                    if (Math.abs(elementLeft - rect.left) < snapThreshold) {
+                        snapX = rect.left;
+                    } else if (Math.abs(elementRight - rect.right) < snapThreshold) {
+                        snapX = rect.right - element.offsetWidth;
+                    } else if (Math.abs(elementCenterX - rect.centerX) < snapThreshold) {
+                        snapX = rect.centerX - element.offsetWidth / 2;
+                    }
+
+                    // Vertikales Snapping
+                    if (Math.abs(elementTop - rect.top) < snapThreshold) {
+                        snapY = rect.top;
+                    } else if (Math.abs(elementBottom - rect.bottom) < snapThreshold) {
+                        snapY = rect.bottom - element.offsetHeight;
+                    } else if (Math.abs(elementCenterY - rect.centerY) < snapThreshold) {
+                        snapY = rect.centerY - element.offsetHeight / 2;
+                    }
+                });
+
+                // Prüfe Snapping zum Canvas (Mitte)
+                if (Math.abs(elementCenterX - canvasCenterX) < snapThreshold) {
+                    snapX = canvasCenterX - element.offsetWidth / 2;
+                }
+                if (Math.abs(elementCenterY - canvasCenterY) < snapThreshold) {
+                    snapY = canvasCenterY - element.offsetHeight / 2;
+                }
+
+                // Wenn Snapping erkannt wurde, passe die Position an
+                if (snapX !== null) {
+                    newX = snapX;
+                }
+                if (snapY !== null) {
+                    newY = snapY;
+                }
+
                 element.style.left = newX + 'px';
                 element.style.top = newY + 'px';
+
                 const item = elements.find(el => el.element === element);
                 if (item) {
                     item.x = Math.round(newX * 8 / 3.78);
                     item.y = Math.round(newY * 8 / 3.78);
                 }
+
+                // Hilfslinien anzeigen
+                showGuidelines(
+                    snapX !== null ? newX + element.offsetWidth / 2 : null,
+                    snapY !== null ? newY + element.offsetHeight / 2 : null
+                );
+
                 generateZPL();
             }
 
             function stopDragging(e) {
-                document.removeEventListener(e.type === "touchend" ? "touchmove" : "mousemove", moveElement);
-                document.removeEventListener(e.type === "touchend" ? "touchend" : "mouseup", stopDragging);
+                isDragging = false;
+                document.removeEventListener("mousemove", moveElement);
+                document.removeEventListener("mouseup", stopDragging);
+                document.removeEventListener("touchmove", moveElement);
+                document.removeEventListener("touchend", stopDragging);
+
+                // Hilfslinien entfernen
+                removeGuidelines();
             }
 
             function handleClick(e) {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTapTime;
-                if (tapLength < 500 && tapLength > 0) {
-                    // Doppelklick/Doppeltipp erkannt
+                // Doppelklick zum Bearbeiten
+                if (e.detail === 2) {
                     showEditModalForElement(element);
                     e.preventDefault();
                 }
-                lastTapTime = currentTime;
             }
 
             element.addEventListener('mousedown', startDrag);
             element.addEventListener('touchstart', startDrag, { passive: false });
 
-            element.addEventListener('mouseup', handleClick);
+            element.addEventListener('click', handleClick);
             element.addEventListener('touchend', handleClick);
 
             // Optional: Kontextmenü zum Löschen des Elements
@@ -686,6 +776,51 @@
                     }
                 }
             });
+        }
+
+        function showGuidelines(verticalPos, horizontalPos) {
+            const canvas = document.getElementById('labelCanvas');
+
+            // Existierende Hilfslinien entfernen
+            removeGuidelines();
+
+            // Vertikale Linie zeichnen
+            if (verticalPos !== null) {
+                verticalGuide = document.createElement('div');
+                verticalGuide.style.position = 'absolute';
+                verticalGuide.style.left = verticalPos + 'px';
+                verticalGuide.style.top = '0';
+                verticalGuide.style.height = canvas.offsetHeight + 'px';
+                verticalGuide.style.width = '1px';
+                verticalGuide.style.backgroundColor = 'red';
+                verticalGuide.style.zIndex = '1000';
+                canvas.appendChild(verticalGuide);
+            }
+
+            // Horizontale Linie zeichnen
+            if (horizontalPos !== null) {
+                horizontalGuide = document.createElement('div');
+                horizontalGuide.style.position = 'absolute';
+                horizontalGuide.style.left = '0';
+                horizontalGuide.style.top = horizontalPos + 'px';
+                horizontalGuide.style.width = canvas.offsetWidth + 'px';
+                horizontalGuide.style.height = '1px';
+                horizontalGuide.style.backgroundColor = 'red';
+                horizontalGuide.style.zIndex = '1000';
+                canvas.appendChild(horizontalGuide);
+            }
+        }
+
+        function removeGuidelines() {
+            const canvas = document.getElementById('labelCanvas');
+            if (verticalGuide) {
+                canvas.removeChild(verticalGuide);
+                verticalGuide = null;
+            }
+            if (horizontalGuide) {
+                canvas.removeChild(horizontalGuide);
+                horizontalGuide = null;
+            }
         }
 
         function enableElementEditing(element, item) {
