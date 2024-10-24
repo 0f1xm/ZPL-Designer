@@ -1046,7 +1046,7 @@
                 if (item.type === 'text') {
                     zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
                 } else if (item.type === 'qr') {
-                    zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDQA,${item.data}^FS\n`;
+                    zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FD${item.data}^FS\n`;
                 } else if (item.type === 'barcode') {
                     zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
                     zpl += `^BCN,${item.height},Y,N,N\n^FD${item.data}^FS\n`;
@@ -1057,6 +1057,7 @@
             zpl += "^XZ";
             document.getElementById('zplOutput').textContent = zpl;
         }
+
 
         function sendToPrinter(zpl) {
             fetch('backend.php', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: zpl }).then(response => {
