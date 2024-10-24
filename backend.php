@@ -1,6 +1,6 @@
 <?php
 
-define('PRINTER_IP', '192.168.1.100'); // Replace IP with your ZPL Printer IP
+define('PRINTER_IP', '192.168.1.100'); // replace printer ip
 define('PRINTER_PORT', 9100);
 
 ini_set('display_errors', 1);
@@ -17,6 +17,12 @@ $zpl_data = file_get_contents('php://input');
 if (empty($zpl_data)) {
     http_response_code(400);
     echo 'No ZPL data received.';
+    exit;
+}
+
+if (!preg_match('/^\^XA.*\^XZ$/s', $zpl_data)) {
+    http_response_code(400);
+    echo 'Invalid ZPL data.';
     exit;
 }
 
