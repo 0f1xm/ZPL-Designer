@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ZPL Label Designer</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             display: flex;
             justify-content: center;
@@ -66,10 +70,12 @@
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
             background-color: #ecf0f1;
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
+
 
         .canvas {
             background-color: white;
@@ -475,7 +481,7 @@
             </div>
 
             <!-- Versionsnummer -->
-            <div class="version-number">v0.8</div>
+            <div class="version-number">v0.9</div>
 
         </div>
 
