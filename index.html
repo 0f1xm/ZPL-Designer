@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ZPL Label Designer</title>
     <style>
         body {
@@ -438,6 +438,9 @@
         let elements = [];
         let horizontalGuide = null;
         let verticalGuide = null;
+        let lastTapTime = 0;
+        let tapTimeout = null;
+
 
 
         function initializeCanvas() {
@@ -620,6 +623,7 @@
         function makeElementDraggable(element) {
             let offsetX, offsetY;
             let isDragging = false;
+            let hasDragged = false;
 
             function startDrag(e) {
                 if (e.type === "mousedown" && e.button !== 0) return;
@@ -628,6 +632,7 @@
                 offsetX = event.clientX - element.getBoundingClientRect().left;
                 offsetY = event.clientY - element.getBoundingClientRect().top;
                 isDragging = true;
+                hasDragged = false;
 
                 document.addEventListener("mousemove", moveElement);
                 document.addEventListener("mouseup", stopDragging);
@@ -639,6 +644,7 @@
 
             function moveElement(e) {
                 if (!isDragging) return;
+                hasDragged = true;
                 const event = e.type.includes("touch") ? e.touches[0] : e;
                 if (e.type === "touchmove") e.preventDefault();
 
@@ -751,12 +757,40 @@
             }
 
             function handleClick(e) {
-                // Doppelklick zum Bearbeiten
-                if (e.detail === 2) {
-                    showEditModalForElement(element);
-                    e.preventDefault();
+                if (hasDragged) {
+                    hasDragged = false;
+                    return;
+                }
+
+                if (e.type === 'click') {
+                    if (e.detail === 2) {
+                        // Doppelklick erkannt (Desktop)
+                        showEditModalForElement(element);
+                        e.preventDefault();
+                    }
+                } else if (e.type === 'touchend') {
+                    const now = new Date().getTime();
+                    const timeSince = now - lastTapTime;
+                    if (timeSince < 300 && timeSince > 0) {
+                        // Doppeltipp erkannt (Mobil)
+                        showEditModalForElement(element);
+                        e.preventDefault();
+                        if (tapTimeout) {
+                            clearTimeout(tapTimeout);
+                            tapTimeout = null;
+                        }
+                    } else {
+                        lastTapTime = now;
+                        if (tapTimeout) {
+                            clearTimeout(tapTimeout);
+                        }
+                        tapTimeout = setTimeout(function () {
+                            tapTimeout = null;
+                        }, 300);
+                    }
                 }
             }
+
 
             element.addEventListener('mousedown', startDrag);
             element.addEventListener('touchstart', startDrag, { passive: false });
