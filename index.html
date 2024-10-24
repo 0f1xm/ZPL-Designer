@@ -1079,7 +1079,7 @@
             saveButton.onclick = function () {
                 item.data = input.value;
                 item.hideText = hideTextInput.checked;
-                item.element.textContent = item.hideText ? "|||" : "|||\n" + input.value;
+                item.element.textContent = item.hideText ? "|||" : "|||" + input.value;
                 modal.style.display = 'none';
                 generateZPL();
             };
@@ -1158,18 +1158,18 @@
     }
 
     function generateZPL() {
-    let zpl = "^XA\n^CI27\n"; // Verwenden von UTF-8-Zeichensatz
+    let zpl = "^XA^CI27"; // Verwenden von UTF-8-Zeichensatz
     elements.forEach(item => {
         if (item.type === 'text') {
-            zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
+            zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS`;
         } else if (item.type === 'qr') {
-            zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDLA,${item.data}^FS\n`;
+            zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDLA,${item.data}^FS`;
         } else if (item.type === 'barcode') {
-            zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
+            zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}`;
             const printInterpretationLine = item.hideText ? 'N' : 'Y';
-            zpl += `^BCN,${item.height},${printInterpretationLine},N,N\n^FD${item.data}^FS\n`;
+            zpl += `^BCN,${item.height},${printInterpretationLine},N,N^FD${item.data}^FS`;
         } else if (item.type === 'image') {
-            zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}\n`;
+            zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}`;
         }
     });
     zpl += "^XZ";
@@ -1305,7 +1305,7 @@
                     } else if (item.type === 'barcode') {
                         const barcodeElement = document.createElement('div');
                         barcodeElement.classList.add('draggable-barcode');
-                        barcodeElement.textContent = item.hideText ? "|||" : "|||\n" + item.data;
+                        barcodeElement.textContent = item.hideText ? "|||" : "|||" + item.data;
                         barcodeElement.style.left = (item.x * 3.78 / 8) + 'px';
                         barcodeElement.style.top = (item.y * 3.78 / 8) + 'px';
                         barcodeElement.style.height = (item.height / 8 * 3.78) + 'px';
