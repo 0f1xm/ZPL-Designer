@@ -481,7 +481,7 @@
             </div>
 
             <!-- Versionsnummer -->
-            <div class="version-number">v0.9</div>
+            <div class="version-number">v0.6</div>
 
         </div>
 
@@ -1162,7 +1162,7 @@
             if (item.type === 'text') {
                 zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
             } else if (item.type === 'qr') {
-                zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FD${item.data}^FS\n`;
+                zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDLA,${item.data}^FS\n`;
             } else if (item.type === 'barcode') {
                 zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
                 const printInterpretationLine = item.hideText ? 'N' : 'Y';
