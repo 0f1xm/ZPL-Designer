@@ -39,7 +39,7 @@
 
         .sidebar h2 {
             font-size: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 2px;
             text-align: center;
         }
 
@@ -51,7 +51,7 @@
         .sidebar input,
         .sidebar button {
             width: 100%;
-            padding: 8px;
+            padding: 5px;
             margin-top: 5px;
             margin-bottom: 10px;
             border-radius: 5px;
@@ -82,6 +82,7 @@
 
         .draggable-text,
         .draggable-qr,
+        .draggable-barcode,
         .draggable-image {
             position: absolute;
             cursor: move;
@@ -108,19 +109,27 @@
             overflow: auto;
         }
 
-        #printButton,#updateButton,#addQRButton,#addImageButton {
+        #printButton,
+        #updateButton,
+        #addQRButton,
+        #addBarcodeButton,
+        #addImageButton {
             width: 200px;
-            padding: 5px;
+            padding: 1px;
             margin-top: 10px;
             border-radius: 5px;
-            border: solid #556575 ;
+            border: solid #556575;
             background-color: #556575;
             color: white;
             font-size: 16px;
             cursor: pointer;
         }
 
-        #printButton:hover,#updateButton:hover,#addQRButton:hover,#addImageButton:hover {
+        #printButton:hover,
+        #updateButton:hover,
+        #addQRButton:hover,
+        #addBarcodeButton:hover,
+        #addImageButton:hover {
             background-color: #435769;
         }
     </style>
@@ -132,46 +141,39 @@
             <h2>Customizations</h2>
             <label for="labelWidth">Width (mm):</label>
             <input type="number" id="labelWidth" value="60">
-
             <label for="labelHeight">Height (mm):</label>
             <input type="number" id="labelHeight" value="60">
-
             <label for="fontSize">Font size (mm):</label>
             <input type="number" id="fontSize" value="5">
-
             <label for="text">Text:</label>
             <input type="text" id="text" placeholder="Your text here">
-
-            <button id="updateButton">Add Text Block</button>
-
-            <label for="qrData">QR-Code Data:</label>
-            <input type="text" id="qrData" placeholder="Content of the QR-Code">
-
-            <label for="qrSize">QR-Code Size (mm):</label>
+            <button id="updateButton">Add Element</button>
+            <label for="qrData">QR Code Data:</label>
+            <input type="text" id="qrData" placeholder="QR Code content">
+            <label for="qrSize">QR Code Size (mm):</label>
             <input type="number" id="qrSize" value="10">
-
-            <button id="addQRButton">Add QR-Code</button>
-
+            <button id="addQRButton">Add QR Code</button>
+            <label for="barcodeData">Barcode Data:</label>
+            <input type="text" id="barcodeData" placeholder="Barcode content">
+            <label for="barcodeHeight">Barcode Height (mm):</label>
+            <input type="number" id="barcodeHeight" value="10">
+            <button id="addBarcodeButton">Add Barcode</button>
             <label for="imageUpload">Upload Image:</label>
-            <input type="file" id="imageUpload" accept="image/jpeg, image/png">
-
+            <input type="file" id="imageUpload" accept="image/gif">
             <label for="imageSize">Image Size (mm):</label>
             <input type="number" id="imageSize" placeholder="e.g., 30">
-
             <button id="addImageButton">Add Image</button>
         </div>
         <div class="main-content">
             <div class="canvas" id="labelCanvas">
-                <!-- Text, QR codes, and images will be dynamically inserted here -->
             </div>
             <button id="printButton">Print Label</button>
-
-            <div class="zpl-output" id="zplOutput">ZPL code will be displayed here</div>
+            <div class="zpl-output" id="zplOutput">ZPL Code will be displayed here</div>
         </div>
     </div>
 </body>
-
 <script type="text/javascript">
+    
     let elements = [];
 
     function initializeCanvas() {
@@ -180,7 +182,6 @@
         const canvas = document.getElementById('labelCanvas');
         const widthPx = parseFloat(labelWidth) * 3.78;
         const heightPx = parseFloat(labelHeight) * 3.78;
-
         canvas.style.width = widthPx + 'px';
         canvas.style.height = heightPx + 'px';
     }
@@ -190,7 +191,6 @@
         const fontSize = document.getElementById('fontSize').value || 5;
         const textInput = document.getElementById('text').value;
         const canvas = document.getElementById('labelCanvas');
-
         const textElement = document.createElement('div');
         textElement.classList.add('draggable-text');
         textElement.style.fontSize = (fontSize ? parseInt(fontSize, 10) * 3.78 : 18.9) + 'px';
@@ -198,19 +198,8 @@
         textElement.style.left = '0px';
         textElement.style.top = '0px';
         canvas.appendChild(textElement);
-
-        elements.push({
-            type: 'text',
-            element: textElement,
-            text: textInput || 'Hello World!',
-            fontHeight: parseFloat(fontSize) * 8,
-            fontWidth: 0,
-            x: 0,
-            y: 0
-        });
-
+        elements.push({ type: 'text', element: textElement, text: textInput || 'Hello World!', fontHeight: parseFloat(fontSize) * 8, fontWidth: 0, x: 0, y: 0 });
         makeElementDraggable(textElement);
-
         generateZPL();
     }
 
@@ -221,16 +210,12 @@
         const desiredSizeMm = qrSizeInput ? parseFloat(qrSizeInput) : 30;
         const canvas = document.getElementById('labelCanvas');
         const moduleCount = 21;
-
         let magnification = Math.round((desiredSizeMm * 8) / moduleCount);
         if (magnification < 1) magnification = 1;
         if (magnification > 10) magnification = 10;
-
         const sizeInDots = magnification * moduleCount;
         const actualSizeMm = sizeInDots / 8;
-
         const sizePx = actualSizeMm * 3.78;
-
         const qrElement = document.createElement('div');
         qrElement.classList.add('draggable-qr');
         qrElement.textContent = "QR";
@@ -239,18 +224,42 @@
         qrElement.style.left = '0px';
         qrElement.style.top = '0px';
         canvas.appendChild(qrElement);
+        elements.push({ type: 'qr', element: qrElement, data: qrData, x: 0, y: 0, magnification: magnification, sizeInDots: sizeInDots });
+        makeElementDraggable(qrElement);
+        generateZPL();
+    }
+
+    function addBarcodeToLabel() {
+        initializeCanvas();
+        const barcodeData = document.getElementById('barcodeData').value || '1234567890';
+        const barcodeHeightInput = document.getElementById('barcodeHeight').value;
+        const desiredHeightMm = barcodeHeightInput ? parseFloat(barcodeHeightInput) : 10;
+        const canvas = document.getElementById('labelCanvas');
+
+        const barcodeHeightPx = desiredHeightMm * 3.78;
+        const moduleWidth = 1;
+
+        const barcodeElement = document.createElement('div');
+        barcodeElement.classList.add('draggable-barcode');
+        barcodeElement.textContent = "|||\n" + barcodeData;
+        barcodeElement.style.width = (barcodeData.length * moduleWidth * 1.5) + 'px';
+        barcodeElement.style.height = barcodeHeightPx + 'px';
+        barcodeElement.style.left = '0px';
+        barcodeElement.style.top = '0px';
+        canvas.appendChild(barcodeElement);
 
         elements.push({
-            type: 'qr',
-            element: qrElement,
-            data: qrData,
+            type: 'barcode',
+            element: barcodeElement,
+            data: barcodeData,
+            barcodeType: 'Code128',
+            moduleWidth: moduleWidth,
             x: 0,
             y: 0,
-            magnification: magnification,
-            sizeInDots: sizeInDots
+            height: desiredHeightMm * 8
         });
 
-        makeElementDraggable(qrElement);
+        makeElementDraggable(barcodeElement);
         generateZPL();
     }
 
@@ -259,7 +268,6 @@
         const imageInput = document.getElementById('imageUpload');
         const imageSizeInput = document.getElementById('imageSize').value;
         const desiredSizeMm = imageSizeInput ? parseFloat(imageSizeInput) : 30;
-
         if (imageInput.files && imageInput.files[0]) {
             const file = imageInput.files[0];
             const reader = new FileReader();
@@ -269,17 +277,13 @@
                     const dpi = 203;
                     const desiredWidthDots = Math.round(desiredSizeMm * dpi / 25.4);
                     const desiredHeightDots = Math.round((img.height / img.width) * desiredWidthDots);
-
                     const canvasElement = document.createElement('canvas');
                     canvasElement.width = desiredWidthDots;
                     canvasElement.height = desiredHeightDots;
                     const ctx = canvasElement.getContext('2d');
-
                     ctx.drawImage(img, 0, 0, desiredWidthDots, desiredHeightDots);
-
                     const imageData = ctx.getImageData(0, 0, desiredWidthDots, desiredHeightDots);
                     const zplImageData = convertImageDataToZPL(imageData);
-
                     const displayImg = document.createElement('img');
                     displayImg.src = canvasElement.toDataURL();
                     displayImg.style.width = (desiredSizeMm * 3.78) + 'px';
@@ -288,22 +292,10 @@
                     displayImg.style.left = '0px';
                     displayImg.style.top = '0px';
                     displayImg.classList.add('draggable-image');
-
                     const labelCanvas = document.getElementById('labelCanvas');
                     labelCanvas.appendChild(displayImg);
-
-                    elements.push({
-                        type: 'image',
-                        element: displayImg,
-                        x: 0,
-                        y: 0,
-                        width: desiredWidthDots,
-                        height: desiredHeightDots,
-                        data: zplImageData
-                    });
-
+                    elements.push({ type: 'image', element: displayImg, x: 0, y: 0, width: desiredWidthDots, height: desiredHeightDots, data: zplImageData });
                     makeElementDraggable(displayImg);
-
                     generateZPL();
                 };
                 img.src = e.target.result;
@@ -322,7 +314,6 @@
         let data = '';
         let byte = 0;
         let bit = 0;
-
         for (let y = 0; y < height; y++) {
             let row = '';
             for (let x = 0; x < width; x++) {
@@ -331,7 +322,6 @@
                 const pixelValue = grayscale > 128 ? 0 : 1;
                 byte = (byte << 1) | pixelValue;
                 bit++;
-
                 if (bit === 8) {
                     row += ('0' + byte.toString(16)).slice(-2).toUpperCase();
                     byte = 0;
@@ -346,18 +336,15 @@
             }
             data += row;
         }
-
         return data;
     }
 
     function makeElementDraggable(element) {
         let offsetX, offsetY;
-
         element.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
             offsetX = e.clientX - element.getBoundingClientRect().left;
             offsetY = e.clientY - element.getBoundingClientRect().top;
-
             document.addEventListener('mousemove', moveElement);
             document.addEventListener('mouseup', stopDragging);
         });
@@ -376,21 +363,17 @@
             const rect = canvas.getBoundingClientRect();
             let newX = e.clientX - rect.left - offsetX;
             let newY = e.clientY - rect.top - offsetY;
-
             if (newX < 0) newX = 0;
             if (newY < 0) newY = 0;
             if (newX + element.offsetWidth > rect.width) newX = rect.width - element.offsetWidth;
             if (newY + element.offsetHeight > rect.height) newY = rect.height - element.offsetHeight;
-
             element.style.left = newX + 'px';
             element.style.top = newY + 'px';
-
             const item = elements.find(el => el.element === element);
             if (item) {
                 item.x = Math.round(newX * 8 / 3.78);
                 item.y = Math.round(newY * 8 / 3.78);
             }
-
             generateZPL();
         }
 
@@ -404,9 +387,12 @@
         let zpl = "^XA\n";
         elements.forEach(item => {
             if (item.type === 'text') {
-                zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;      
+                zpl += `^FO${item.x},${item.y}^A0N,${item.fontHeight},${item.fontWidth}^FD${item.text}^FS\n`;
             } else if (item.type === 'qr') {
                 zpl += `^FO${item.x},${item.y}^BQN,2,${item.magnification}^FDQA,${item.data}^FS\n`;
+            } else if (item.type === 'barcode') {
+                zpl += `^FO${item.x},${item.y}^BY${item.moduleWidth}\n`;
+                zpl += `^BCN,${item.height},Y,N,N\n^FD${item.data}^FS\n`;
             } else if (item.type === 'image') {
                 zpl += `^FO${item.x},${item.y}^GFA,${item.data.length / 2},${item.data.length / 2},${Math.ceil(item.width / 8)},${item.data}\n`;
             }
@@ -416,32 +402,23 @@
     }
 
     function sendToPrinter(zpl) {
-        fetch('backend.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            body: zpl
-        })
-            .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Error sending to printer: ' + response.statusText);
-                }
-            })
-            .then(data => {
-                alert(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error printing: ' + error.message);
-            });
+        fetch('backend.php', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: zpl }).then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                throw new Error('Error sending to the printer: ' + response.statusText);
+            }
+        }).then(data => {
+            alert(data);
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Error printing: ' + error.message);
+        });
     }
 
     document.getElementById('printButton').addEventListener('click', () => {
         const zplCode = document.getElementById('zplOutput').textContent;
-        if (zplCode.trim() === '' || zplCode.includes('ZPL code will be displayed here')) {
+        if (zplCode.trim() === '' || zplCode.includes('ZPL Code will be displayed here')) {
             alert('Please create a label first.');
         } else {
             sendToPrinter(zplCode);
@@ -450,6 +427,7 @@
 
     document.getElementById('updateButton').addEventListener('click', addTextToLabel);
     document.getElementById('addQRButton').addEventListener('click', addQRCodeToLabel);
+    document.getElementById('addBarcodeButton').addEventListener('click', addBarcodeToLabel);
     document.getElementById('addImageButton').addEventListener('click', addImageToLabel);
 
 </script>
