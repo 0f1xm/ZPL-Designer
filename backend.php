@@ -1,6 +1,6 @@
 <?php
 
-define('PRINTER_IP', '10.32.178.10'); // replace printer ip
+define('PRINTER_IP', '123.123.123.123'); // replace printer ip
 define('PRINTER_PORT', 9100);
 
 ini_set('display_errors', 1);
